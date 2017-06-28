@@ -101,7 +101,7 @@ def read_model_predictions(precition_file, entity_vocab_file, dev_file):
 
     data = np.load(precition_file)
     data = data.reshape(num_dev, -1)
-    print data.shape
+    print(str(data.shape))
     seq_len = data.shape[1]
     num = data.shape[0]
     for i in range(num):

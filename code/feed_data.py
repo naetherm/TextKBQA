@@ -165,7 +165,7 @@ class Batcher(object):
                 for counter, start_index in enumerate(q_start_indices):
                     num_facts = q_fact_lengths[counter]
                     if mem_counter < self.max_num_mem_slots:
-                        for mem_index in xrange(start_index, start_index + num_facts):
+                        for mem_index in range(start_index, start_index + num_facts):
                             mem = kb_facts[mem_index]
                             e1_int = entity_vocab[mem['e1']] if mem['e1'] in entity_vocab else entity_vocab['UNK']
                             e2_int = entity_vocab[mem['e2']] if mem['e2'] in entity_vocab else entity_vocab['UNK']
@@ -225,7 +225,7 @@ class Batcher(object):
                     num_facts = q_fact_lengths[counter]
                     black_list_entity = set(q_black_lists[counter]) if q_black_lists is not None else None
                     if mem_counter < self.max_num_text_mem_slots:
-                        for mem_entity_counter, mem_index in enumerate(xrange(start_index, start_index + num_facts)):
+                        for mem_entity_counter, mem_index in enumerate(range(start_index, start_index + num_facts)):
                             if black_list_entity is not None and mem_entity_counter in black_list_entity:
                                 continue
                             mem = text_kb_facts[mem_index]

@@ -4,8 +4,10 @@ from KBQA import KBQA, TextQA, TextKBQA
 import tensorflow as tf
 import argparse
 import time
+import os
 import numpy as np
-import cPickle as pickle
+#import cPickle as pickle
+from six.moves import cPickle
 from tqdm import tqdm
 import pdb
 
@@ -96,7 +98,7 @@ class Trainer(object):
         self.predict_op = tf.argmax(self.probs, 1, name="predict_op")
 
         # loss
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(output, self.answer)
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=output, labels=self.answer)
         self.loss = tf.reduce_mean(cross_entropy, name="loss_op")  # COMMENT(manzilz): replace with mean?
 
         if use_kb and use_text:
@@ -114,7 +116,7 @@ class Trainer(object):
         self.train_op = self.bp(self.loss)
 
         # return the variable initializer Op.
-        init_op = tf.initialize_all_variables()
+        init_op = tf.global_variables_initializer()
 
         return init_op
 
@@ -206,6 +208,12 @@ class Trainer(object):
         batch_counter = 0
         train_acc = 0.0
         with tf.Session(config=tf.ConfigProto(log_device_placement=False)) as sess:
+
+            summaries = tf.summary.merge_all()
+            writer = tf.summary.FileWriter(
+                os.path.join('./logs/', time.strftime("%Y-%m-%d-%H-%M-%S")))
+            writer.add_graph(sess.graph)
+
             sess.run(self.initialize())
 
             if load_model:

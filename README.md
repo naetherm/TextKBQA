@@ -1,7 +1,11 @@
 ### This repo contains the tensorflow implementation of the paper "[Question Answering on Knowledge Bases and Text using Universal Schema and Memory Networks](https://arxiv.org/abs/1704.08384)".
 
+### Notes
+
+(naetherm) Made small modifications so it's possible to use the newest TensorFlow version (currently version 1.2.0) when training.
+
 ### Dependencies
-* TensorFlow <= 0.12
+* TensorFlow 1.2.0
 
 ## Training
 I have set up training with most default params on a very small dataset so that it is easier to get started. Just running the script should work.

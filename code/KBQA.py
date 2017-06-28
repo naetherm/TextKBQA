@@ -64,7 +64,7 @@ class QAbase(object):
         # assign these slots 0 weight.
         self.entity_dummy_mem = tf.constant(0.0, shape=[1, self.embedding_size], dtype='float32')
 
-        self.entity_lookup_table_extended = tf.concat(0, [self.entity_lookup_table, self.entity_dummy_mem])
+        self.entity_lookup_table_extended = tf.concat(axis=0, values=[self.entity_lookup_table, self.entity_dummy_mem])
 
         # for encoding question
         # with tf.variable_scope('q_forward'):
@@ -92,7 +92,7 @@ class QAbase(object):
             last_fwd = util.last_relevant(fwd_out_all, question_lengths)
             last_bwd = bwd_out_all[:, 0, :]
             # question_embedding: [B,2D]
-            question_embedding = tf.concat(1, [last_fwd, last_bwd])
+            question_embedding = tf.concat(axis=1, values=[last_fwd, last_bwd])
         else:
             raise NotImplementedError
         return question_embedding
@@ -111,7 +111,7 @@ class QAbase(object):
             expanded_question_embedding = tf.expand_dims(question_embedding, 1)
             # self.key*expanded_question_embedding [B, M, 2D]; self.attn_weights: [B,M]
             attn_logits = tf.reduce_sum(key * expanded_question_embedding, 2)
-            attn_logits = tf.select(mask, attn_logits, C)
+            attn_logits = tf.where(mask, attn_logits, C)
             self.attn_weights = tf.nn.softmax(attn_logits)
             self.attn_weights_all_hops.append(self.attn_weights)
             # self.p = tf.Print(attn_weights, [attn_weights], message='At hop {}'.format(h), summarize=10)
@@ -163,7 +163,7 @@ class KBQA(QAbase):
 
         self.relation_dummy_mem = tf.constant(0.0, shape=[1, self.embedding_size], dtype='float32')
 
-        self.relation_lookup_table = tf.concat(0, [self.relation_lookup_table, self.relation_dummy_mem])
+        self.relation_lookup_table = tf.concat(axis=0, values=[self.relation_lookup_table, self.relation_dummy_mem])
 
     def get_key_embedding(self, entity, relation):
         """TODO(rajarshd): describe various options"""
@@ -173,14 +173,14 @@ class KBQA(QAbase):
 
         # key shape is [B, max_num_slots, 2D]
         if self.key_encoder == 'concat':
-            key = tf.concat(2, [e1_embedding, r_embedding])
+            key = tf.concat(axis=2, values=[e1_embedding, r_embedding])
         else:
             raise NotImplementedError
         return key
 
     def __call__(self, memory, question, question_lengths):
         # split memory and get corresponding embeddings
-        e1, r, e2 = tf.unpack(memory, axis=2)
+        e1, r, e2 = tf.unstack(memory, axis=2)
         C = tf.ones_like(e1, dtype='float32') * -1000
         mask = tf.not_equal(e1, self.entity_vocab_size - 1)
         key = self.get_key_embedding(e1, r)
@@ -250,7 +250,7 @@ class TextQA(QAbase):
             fw_c, fw_h = lstm_key_output_states_fw
             bw_c, bw_h = lstm_key_output_states_bw
             # [(B, max_num_slots), 2D]
-            key = tf.reshape(tf.concat(1, [fw_h, bw_h]), [-1, dims[1], 2 * self.embedding_size])
+            key = tf.reshape(tf.concat(axis=1, values=[fw_h, bw_h]), [-1, dims[1], 2 * self.embedding_size])
         else:
             raise NotImplementedError
         return key
@@ -303,7 +303,7 @@ class TextKBQA(QAbase):
 
         self.relation_dummy_mem = tf.constant(0.0, shape=[1, self.embedding_size], dtype='float32')
 
-        self.relation_lookup_table_extended = tf.concat(0, [self.relation_lookup_table, self.relation_dummy_mem])
+        self.relation_lookup_table_extended = tf.concat(axis=0, values=[self.relation_lookup_table, self.relation_dummy_mem])
 
         # for encoding key
         if self.separate_key_lstm:
@@ -321,7 +321,7 @@ class TextKBQA(QAbase):
 
         # key shape is [B, max_num_slots, 2D]
         if self.kb_key_encoder == 'concat':
-            kb_key = tf.concat(2, [e1_embedding, r_embedding])
+            kb_key = tf.concat(axis=2, values=[e1_embedding, r_embedding])
         else:
             raise NotImplementedError
 
@@ -352,14 +352,14 @@ class TextKBQA(QAbase):
             fw_c, fw_h = lstm_key_output_states_fw
             bw_c, bw_h = lstm_key_output_states_bw
             # [(B, max_num_slots), 2D]
-            text_key = tf.reshape(tf.concat(1, [fw_h, bw_h]), [-1, dims[1], 2 * self.embedding_size])
+            text_key = tf.reshape(tf.concat(axis=1, values=[fw_h, bw_h]), [-1, dims[1], 2 * self.embedding_size])
         else:
             raise NotImplementedError
         return kb_key, text_key
 
     def __call__(self, memory, key_mem, key_len, val_mem, question, question_lengths):
         # split memory and get corresponding embeddings
-        e1, r, e2 = tf.unpack(memory, axis=2)
+        e1, r, e2 = tf.unstack(memory, axis=2)
         kb_C = tf.ones_like(e1, dtype='float32') * -1000
         kb_mask = tf.not_equal(e1, self.entity_vocab_size - 1)
         kb_value = self.get_value_embedding(e2)
@@ -386,10 +386,10 @@ class TextKBQA(QAbase):
             text_key = tf.nn.batch_normalization(text_key, mean_text_key, var_text_key, mean_kb_key, var_kb_key, 1e-8)
             text_value = tf.nn.batch_normalization(text_value, mean_text_value, var_text_value, mean_kb_value, var_kb_value, 1e-8)
 
-            merged_key = tf.concat(1, [kb_key, text_key])
-            merged_value = tf.concat(1, [kb_value, text_value])
-            merged_C = tf.concat(1, [kb_C, text_C])
-            merged_mask = tf.concat(1, [kb_mask, text_mask])
+            merged_key = tf.concat(axis=1, values=[kb_key, text_key])
+            merged_value = tf.concat(axis=1, values=[kb_value, text_value])
+            merged_C = tf.concat(axis=1, values=[kb_C, text_C])
+            merged_mask = tf.concat(axis=1, values=[kb_mask, text_mask])
 
             # get attention on retrived informations based on the question
             attn_ques = self.seek_attention(ques, merged_key, merged_value, merged_C, merged_mask)  # [B, 2D]
